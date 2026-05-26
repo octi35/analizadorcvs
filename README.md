@@ -60,7 +60,7 @@ cvision/
 │   └── api/analyze/route.ts    # POST: PDF → texto → Claude → JSON
 ├── components/
 │   ├── UploadZone.tsx          # Drag & drop + validación 5MB
-│   ├── AnalysisResult.tsx      # Layout completo de resultados
++│   ├── AnalysisResult.tsx      # Layout completo de resultados
 │   ├── ScoreCard.tsx           # Score animado con arco SVG
 │   └── FeedbackSection.tsx     # Strengths, weaknesses, improvements, keywords
 └── lib/claude.ts               # Cliente Anthropic + validación de schema
