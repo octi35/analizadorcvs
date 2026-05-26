@@ -1,0 +1,81 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  background: #080c14;
+  color: #e2e8f0;
+  font-family: "Inter", "Syne", system-ui, -apple-system, sans-serif;
+  min-height: 100%;
+}
+
+body {
+  background:
+    radial-gradient(1200px 600px at 50% -200px, rgba(59, 130, 246, 0.12), transparent 60%),
+    radial-gradient(800px 400px at 100% 100%, rgba(59, 130, 246, 0.06), transparent 60%),
+    #080c14;
+  min-height: 100vh;
+}
+
+* {
+  -webkit-font-smoothing: antialiased;
+}
+
+.font-display {
+  font-family: "Syne", sans-serif;
+  letter-spacing: -0.02em;
+}
+
+.font-mono {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+}
+
+.score-track {
+  stroke: #1e2d45;
+  fill: none;
+}
+
+.score-progress {
+  fill: none;
+  stroke-linecap: round;
+  transform: rotate(-90deg);
+  transform-origin: center;
+  transition: stroke-dashoffset 1.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid #1e2d45;
+  background: rgba(59, 130, 246, 0.06);
+  color: #e2e8f0;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.78rem;
+}
+
+.dashed-box {
+  position: relative;
+  border: 1.5px dashed #1e2d45;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.dashed-box.active {
+  border-color: #3b82f6;
+  background: rgba(59, 130, 246, 0.04);
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #1e2d45;
+  border-radius: 3px;
+}
