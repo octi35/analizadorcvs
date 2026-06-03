@@ -18,8 +18,19 @@ export default function UploadZone({ file, onFile, disabled }: UploadZoneProps) 
 
   const validate = useCallback(
     (f: File): string | null => {
-      if (f.type !== "application/pdf" && !f.name.toLowerCase().endsWith(".pdf")) {
-        return "Solo se aceptan archivos PDF";
+      const name = f.name.toLowerCase();
+      const isPdf =
+        f.type === "application/pdf" || name.endsWith(".pdf");
+      const isTxt = f.type === "text/plain" || name.endsWith(".txt");
+      const isDocx =
+        f.type ===
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+        name.endsWith(".docx");
+      if (name.endsWith(".doc") && !isDocx) {
+        return "Formato .doc (Word 97-2003) no soportado. Guardalo como .docx";
+      }
+      if (!isPdf && !isTxt && !isDocx) {
+        return "Solo se aceptan archivos PDF, DOCX o TXT";
       }
       if (f.size > MAX_BYTES) {
         return "El archivo supera el tamaño máximo de 5MB";
@@ -79,7 +90,7 @@ export default function UploadZone({ file, onFile, disabled }: UploadZoneProps) 
         <input
           ref={inputRef}
           type="file"
-          accept="application/pdf,.pdf"
+          accept="application/pdf,.pdf,text/plain,.txt,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx"
           className="hidden"
           onChange={(e) => handleFiles(e.target.files)}
         />
@@ -114,10 +125,10 @@ export default function UploadZone({ file, onFile, disabled }: UploadZoneProps) 
               <Upload className="w-6 h-6 text-accent-blue" />
             </div>
             <div className="font-display text-xl text-text mb-1">
-              Arrastrá tu CV en PDF
+              Arrastrá tu CV
             </div>
             <div className="text-sm text-text/50">
-              o hacé clic para seleccionar — máx. 5MB
+              PDF, DOCX o TXT — máx. 5MB · clic para seleccionar
             </div>
           </>
         )}

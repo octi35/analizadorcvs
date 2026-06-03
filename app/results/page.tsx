@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { FileX } from "lucide-react";
 import AnalysisResult from "@/components/AnalysisResult";
-import type { AnalysisResult as Analysis } from "@/lib/claude";
+import type { AnalysisResult as Analysis } from "@/lib/llm";
 
 interface StoredAnalysis {
   analysis: Analysis;
@@ -20,10 +20,18 @@ export default function ResultsPage() {
     try {
       const raw = localStorage.getItem("cvision:last-analysis");
       if (raw) {
-        setData(JSON.parse(raw) as StoredAnalysis);
+        const parsed = JSON.parse(raw) as StoredAnalysis;
+        if (
+          parsed?.analysis?.perfil_resumen !== undefined &&
+          parsed?.analysis?.ats !== undefined
+        ) {
+          setData(parsed);
+        } else {
+          localStorage.removeItem("cvision:last-analysis");
+        }
       }
     } catch {
-      // ignore
+      localStorage.removeItem("cvision:last-analysis");
     }
     setReady(true);
   }, []);

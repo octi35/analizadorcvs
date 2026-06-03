@@ -8,8 +8,8 @@ import UploadZone from "@/components/UploadZone";
 
 const LOADING_STEPS = [
   "Leyendo documento...",
-  "Analizando perfil...",
-  "Generando reporte...",
+  "Detectando perfil y roles...",
+  "Generando plan de mejora...",
 ];
 
 export default function HomePage() {
@@ -74,15 +74,15 @@ export default function HomePage() {
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-border bg-card/60 mb-6">
             <Sparkles className="w-3.5 h-3.5 text-accent-blue" />
             <span className="text-xs font-mono text-text/70">
-              Powered by Claude
+              Powered by Llama 3.3 · Groq
             </span>
           </div>
           <h1 className="font-display text-6xl font-bold tracking-tight">
             CV<span className="text-accent-blue">ision</span>
           </h1>
           <p className="mt-4 text-text/60 max-w-md mx-auto">
-            Análisis estructurado de currículums con IA. Subí un PDF, obtené
-            feedback accionable en segundos.
+            Análisis IT de tu CV con IA. Subí un PDF, Word o TXT y obtené
+            roles compatibles, mejoras concretas y un plan de crecimiento.
           </p>
         </motion.div>
 
@@ -172,7 +172,7 @@ export default function HomePage() {
         </AnimatePresence>
 
         <div className="mt-8 text-center text-xs font-mono text-text/30">
-          PDFs hasta 5MB · Tu archivo no se almacena
+          PDF, DOCX o TXT hasta 5MB · tu archivo no se almacena
         </div>
       </div>
     </main>

@@ -3,9 +3,13 @@
 import { motion } from "framer-motion";
 import { FileText, ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import type { AnalysisResult as Analysis } from "@/lib/claude";
-import ScoreCard from "./ScoreCard";
-import FeedbackSection from "./FeedbackSection";
+import type { AnalysisResult as Analysis } from "@/lib/llm";
+import ProfileSummary from "./ProfileSummary";
+import ATSCheck from "./ATSCheck";
+import TargetMatch from "./TargetMatch";
+import RoleMatches from "./RoleMatches";
+import ImprovementsList from "./ImprovementsList";
+import SkillsRoadmap from "./SkillsRoadmap";
 
 interface AnalysisResultProps {
   analysis: Analysis;
@@ -24,15 +28,15 @@ export default function AnalysisResult({
         transition={{ duration: 0.4 }}
         className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-2"
       >
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-accent-blue/10 border border-accent-blue/30 flex items-center justify-center">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-10 h-10 rounded-lg bg-accent-blue/10 border border-accent-blue/30 flex items-center justify-center flex-shrink-0">
             <FileText className="w-5 h-5 text-accent-blue" />
           </div>
-          <div>
+          <div className="min-w-0">
             <div className="text-xs font-mono text-text/40 uppercase tracking-wider">
               Análisis de
             </div>
-            <div className="font-mono text-sm text-text break-all">
+            <div className="font-mono text-sm text-text truncate">
               {fileName}
             </div>
           </div>
@@ -46,37 +50,20 @@ export default function AnalysisResult({
         </Link>
       </motion.header>
 
-      <ScoreCard
-        score={analysis.score}
-        verdict={analysis.verdict}
-        verdictReason={analysis.verdictReason}
-        position={analysis.position}
-      />
-
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.05 }}
-        className="bg-card border border-border rounded-2xl p-6"
-      >
-        <div className="text-xs font-mono text-text/40 uppercase tracking-wider mb-3">
-          Resumen del perfil
-        </div>
-        <p className="text-text/85 leading-relaxed">{analysis.summary}</p>
-      </motion.div>
-
-      <FeedbackSection
-        strengths={analysis.strengths}
-        weaknesses={analysis.weaknesses}
-        improvements={analysis.improvements}
-        keywords={analysis.keywords}
-      />
+      <ProfileSummary resumen={analysis.perfil_resumen} />
+      {analysis.match_objetivo && (
+        <TargetMatch match={analysis.match_objetivo} />
+      )}
+      <ATSCheck ats={analysis.ats} />
+      <RoleMatches roles={analysis.roles_compatibles} />
+      <ImprovementsList items={analysis.puntos_mejora_cv} />
+      <SkillsRoadmap items={analysis.habilidades_a_sumar} />
 
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.6 }}
-        className="text-center pt-4"
+        className="text-center pt-2"
       >
         <Link
           href="/"
