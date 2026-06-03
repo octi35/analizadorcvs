@@ -7,6 +7,7 @@ import type { AnalysisResult as Analysis } from "@/lib/llm";
 import ProfileSummary from "./ProfileSummary";
 import ATSCheck from "./ATSCheck";
 import TargetMatch from "./TargetMatch";
+import RequisitosCheck from "./RequisitosCheck";
 import RoleMatches from "./RoleMatches";
 import ImprovementsList from "./ImprovementsList";
 import SkillsRoadmap from "./SkillsRoadmap";
@@ -21,7 +22,7 @@ export default function AnalysisResult({
   fileName,
 }: AnalysisResultProps) {
   return (
-    <div className="max-w-4xl mx-auto px-6 py-12 space-y-6">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-5 sm:space-y-6">
       <motion.header
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -54,6 +55,7 @@ export default function AnalysisResult({
       {analysis.match_objetivo && (
         <TargetMatch match={analysis.match_objetivo} />
       )}
+      <RequisitosCheck items={analysis.requisitos_check} />
       <ATSCheck ats={analysis.ats} />
       <RoleMatches roles={analysis.roles_compatibles} />
       <ImprovementsList items={analysis.puntos_mejora_cv} />

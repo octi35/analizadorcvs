@@ -119,7 +119,7 @@ export default function TargetMatch({ match }: TargetMatchProps) {
         />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
         {match.fortalezas.length > 0 && (
           <div>
             <div className="text-xs font-mono text-accent-green uppercase tracking-wider mb-2">

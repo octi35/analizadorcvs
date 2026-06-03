@@ -81,7 +81,7 @@ export default function UploadZone({ file, onFile, disabled }: UploadZoneProps) 
       <div
         className={`dashed-box ${dragActive ? "active" : ""} ${
           disabled ? "opacity-60 pointer-events-none" : ""
-        } rounded-2xl px-8 py-14 cursor-pointer flex flex-col items-center justify-center text-center transition-all`}
+        } rounded-2xl px-4 py-10 sm:px-8 sm:py-14 cursor-pointer flex flex-col items-center justify-center text-center transition-all`}
         onClick={() => inputRef.current?.click()}
         onDrop={onDrop}
         onDragOver={onDragOver}
@@ -96,13 +96,15 @@ export default function UploadZone({ file, onFile, disabled }: UploadZoneProps) 
         />
 
         {file ? (
-          <div className="flex items-center gap-3 text-text">
-            <div className="w-12 h-12 rounded-lg bg-accent-blue/10 border border-accent-blue/30 flex items-center justify-center">
+          <div className="flex items-center gap-3 text-text w-full max-w-full">
+            <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-lg bg-accent-blue/10 border border-accent-blue/30 flex items-center justify-center flex-shrink-0">
               <FileText className="w-5 h-5 text-accent-blue" />
             </div>
-            <div className="text-left">
-              <div className="font-mono text-sm">{file.name}</div>
-              <div className="text-xs text-text/50 font-mono">
+            <div className="text-left min-w-0 flex-1">
+              <div className="font-mono text-xs sm:text-sm truncate">
+                {file.name}
+              </div>
+              <div className="text-[11px] sm:text-xs text-text/50 font-mono">
                 {(file.size / 1024).toFixed(1)} KB
               </div>
             </div>
@@ -113,7 +115,7 @@ export default function UploadZone({ file, onFile, disabled }: UploadZoneProps) 
                 onFile(null);
                 if (inputRef.current) inputRef.current.value = "";
               }}
-              className="ml-4 p-1.5 rounded-md hover:bg-border/50 transition-colors"
+              className="p-1.5 rounded-md hover:bg-border/50 transition-colors flex-shrink-0"
               aria-label="Quitar archivo"
             >
               <X className="w-4 h-4 text-text/60" />
@@ -121,13 +123,13 @@ export default function UploadZone({ file, onFile, disabled }: UploadZoneProps) 
           </div>
         ) : (
           <>
-            <div className="w-14 h-14 rounded-xl bg-accent-blue/10 border border-accent-blue/30 flex items-center justify-center mb-4">
-              <Upload className="w-6 h-6 text-accent-blue" />
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-accent-blue/10 border border-accent-blue/30 flex items-center justify-center mb-3 sm:mb-4">
+              <Upload className="w-5 h-5 sm:w-6 sm:h-6 text-accent-blue" />
             </div>
-            <div className="font-display text-xl text-text mb-1">
+            <div className="font-display text-lg sm:text-xl text-text mb-1">
               Arrastrá tu CV
             </div>
-            <div className="text-sm text-text/50">
+            <div className="text-xs sm:text-sm text-text/50">
               PDF, DOCX o TXT — máx. 5MB · clic para seleccionar
             </div>
           </>

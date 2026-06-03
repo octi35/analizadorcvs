@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Briefcase, Sparkles, ArrowRight } from "lucide-react";
+import { Briefcase, Sparkles, ArrowRight, ListChecks } from "lucide-react";
 import UploadZone from "@/components/UploadZone";
 
 const LOADING_STEPS = [
@@ -16,6 +16,7 @@ export default function HomePage() {
   const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [jobPosition, setJobPosition] = useState("");
+  const [jobDescription, setJobDescription] = useState("");
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(0);
   const [apiError, setApiError] = useState<string | null>(null);
@@ -41,6 +42,7 @@ export default function HomePage() {
       const fd = new FormData();
       fd.append("file", file);
       fd.append("jobPosition", jobPosition.trim());
+      fd.append("jobDescription", jobDescription.trim());
 
       const res = await fetch("/api/analyze", {
         method: "POST",
@@ -63,26 +65,27 @@ export default function HomePage() {
   };
 
   return (
-    <main className="min-h-screen flex items-center justify-center px-6 py-16">
+    <main className="min-h-screen flex items-center justify-center px-4 sm:px-6 py-10 sm:py-16">
       <div className="max-w-2xl w-full">
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="text-center mb-12"
+          className="text-center mb-8 sm:mb-12"
         >
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-border bg-card/60 mb-6">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-border bg-card/60 mb-5 sm:mb-6">
             <Sparkles className="w-3.5 h-3.5 text-accent-blue" />
-            <span className="text-xs font-mono text-text/70">
+            <span className="text-[11px] sm:text-xs font-mono text-text/70">
               Powered by Llama 3.3 · Groq
             </span>
           </div>
-          <h1 className="font-display text-6xl font-bold tracking-tight">
+          <h1 className="font-display text-5xl sm:text-6xl font-bold tracking-tight">
             CV<span className="text-accent-blue">ision</span>
           </h1>
-          <p className="mt-4 text-text/60 max-w-md mx-auto">
-            Análisis IT de tu CV con IA. Subí un PDF, Word o TXT y obtené
-            roles compatibles, mejoras concretas y un plan de crecimiento.
+          <p className="mt-4 text-sm sm:text-base text-text/60 max-w-md mx-auto px-2">
+            Análisis IT de CVs con IA. Para candidatos: roles, mejoras y plan de
+            crecimiento. Para reclutadores: filtro contra requisitos, red flags
+            y preguntas de entrevista.
           </p>
         </motion.div>
 
@@ -95,7 +98,7 @@ export default function HomePage() {
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.4 }}
               onSubmit={onSubmit}
-              className="bg-card border border-border rounded-2xl p-6 sm:p-8 space-y-6"
+              className="bg-card border border-border rounded-2xl p-4 sm:p-8 space-y-5 sm:space-y-6"
             >
               <UploadZone file={file} onFile={setFile} />
 
@@ -116,6 +119,36 @@ export default function HomePage() {
                   placeholder="Ej: Senior Frontend Engineer"
                   className="w-full px-4 py-3 rounded-lg bg-bg border border-border text-text placeholder:text-text/30 focus:outline-none focus:border-accent-blue/60 transition-colors font-mono text-sm"
                 />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="jobDescription"
+                  className="flex items-center gap-2 text-sm text-text/70 mb-2 font-mono flex-wrap"
+                >
+                  <ListChecks className="w-3.5 h-3.5" />
+                  Requisitos del puesto / Job description
+                  <span className="text-text/40">(opcional · reclutadores)</span>
+                </label>
+                <textarea
+                  id="jobDescription"
+                  value={jobDescription}
+                  onChange={(e) => setJobDescription(e.target.value)}
+                  rows={5}
+                  maxLength={4000}
+                  placeholder={
+                    "Pegá la descripción del puesto o un listado de requisitos. Ej:\n• 3+ años React + TypeScript\n• Experiencia con AWS\n• Inglés B2+\n• Remoto desde LATAM"
+                  }
+                  className="w-full px-4 py-3 rounded-lg bg-bg border border-border text-text placeholder:text-text/30 focus:outline-none focus:border-accent-blue/60 transition-colors text-sm leading-relaxed resize-y min-h-[120px]"
+                />
+                <div className="flex justify-between mt-1.5 px-1">
+                  <span className="text-[10px] font-mono text-text/30">
+                    Cuanto más detalle, mejor el matching
+                  </span>
+                  <span className="text-[10px] font-mono text-text/30">
+                    {jobDescription.length}/4000
+                  </span>
+                </div>
               </div>
 
               {apiError && (
@@ -139,7 +172,7 @@ export default function HomePage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              className="bg-card border border-border rounded-2xl p-12 flex flex-col items-center justify-center min-h-[280px]"
+              className="bg-card border border-border rounded-2xl p-8 sm:p-12 flex flex-col items-center justify-center min-h-[260px] sm:min-h-[280px]"
             >
               <div className="relative w-16 h-16 mb-8">
                 <div className="absolute inset-0 rounded-full border-2 border-border" />

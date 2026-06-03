@@ -37,6 +37,8 @@ export async function POST(req: NextRequest) {
     const formData = await req.formData();
     const file = formData.get("file");
     const jobPosition = (formData.get("jobPosition") as string | null) ?? "";
+    const jobDescription =
+      (formData.get("jobDescription") as string | null) ?? "";
 
     if (!file || !(file instanceof File)) {
       return NextResponse.json(
@@ -111,7 +113,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const analysis = await analyzeCv(cvText, jobPosition);
+    const analysis = await analyzeCv(cvText, jobPosition, jobDescription);
 
     return NextResponse.json({
       analysis,
