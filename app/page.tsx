@@ -443,10 +443,7 @@ export default function HomePage() {
               exit={{ opacity: 0 }}
               className="bg-card border border-border rounded-2xl p-8 sm:p-12 flex flex-col items-center justify-center min-h-[260px] sm:min-h-[280px]"
             >
-              <div className="relative w-16 h-16 mb-8">
-                <div className="absolute inset-0 rounded-full border-2 border-border" />
-                <div className="absolute inset-0 rounded-full border-2 border-accent-blue border-t-transparent animate-spin" />
-              </div>
+              <ScanningCV multiple={isRanking} count={multiFiles.length} />
               <AnimatePresence mode="wait">
                 <motion.div
                   key={step}
@@ -483,6 +480,65 @@ export default function HomePage() {
         </div>
       </div>
     </main>
+  );
+}
+
+// Animación de "leyendo el CV": documento con línea de escaneo barriendo el texto.
+function ScanningCV({ multiple, count }: { multiple: boolean; count: number }) {
+  const lineWidths = ["85%", "70%", "92%", "60%", "78%", "45%"];
+  return (
+    <div className="relative w-28 sm:w-32 mb-8">
+      {/* hojas apiladas detrás (solo en modo ranking) */}
+      {multiple && (
+        <>
+          <div className="absolute -right-2 top-2 w-full h-full rounded-xl border border-border bg-card rotate-[6deg]" />
+          <div className="absolute -left-2 top-1 w-full h-full rounded-xl border border-border bg-card -rotate-[5deg]" />
+        </>
+      )}
+
+      {/* documento principal */}
+      <div className="relative aspect-[3/4] rounded-xl border-2 border-accent-blue/40 bg-bg/80 overflow-hidden">
+        {/* esquina doblada */}
+        <div className="absolute top-0 right-0 w-5 h-5 bg-card border-l border-b border-accent-blue/40 rounded-bl-md" />
+
+        {/* líneas de texto (skeleton) */}
+        <div className="p-3.5 sm:p-4 pt-5 space-y-2">
+          {lineWidths.map((w, i) => (
+            <motion.div
+              key={i}
+              className="h-1.5 rounded-full bg-accent-blue/25"
+              style={{ width: w }}
+              animate={{ opacity: [0.25, 0.7, 0.25] }}
+              transition={{
+                duration: 1.6,
+                repeat: Infinity,
+                delay: i * 0.18,
+                ease: "easeInOut",
+              }}
+            />
+          ))}
+        </div>
+
+        {/* halo de escaneo */}
+        <motion.div
+          className="absolute left-0 right-0 h-10 bg-gradient-to-b from-transparent via-accent-blue/25 to-transparent"
+          animate={{ top: ["-15%", "100%"] }}
+          transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+        />
+        {/* línea de escaneo brillante */}
+        <motion.div
+          className="absolute left-0 right-0 h-[2px] bg-accent-blue shadow-[0_0_10px_2px_#3b82f6]"
+          animate={{ top: ["0%", "100%"] }}
+          transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+        />
+      </div>
+
+      {multiple && count > 0 && (
+        <div className="absolute -bottom-2 -right-2 min-w-[22px] h-[22px] px-1.5 rounded-full bg-accent-blue text-white font-mono text-[11px] flex items-center justify-center border-2 border-card">
+          {count}
+        </div>
+      )}
+    </div>
   );
 }
 
