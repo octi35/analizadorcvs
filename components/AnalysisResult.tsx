@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { FileText, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import type { AnalysisResult as Analysis } from "@/lib/llm";
+import ResultsHero from "./ResultsHero";
 import ProfileSummary from "./ProfileSummary";
 import ATSCheck from "./ATSCheck";
 import TargetMatch from "./TargetMatch";
@@ -50,6 +51,8 @@ export default function AnalysisResult({
           Analizar otro CV
         </Link>
       </motion.header>
+
+      <ResultsHero analysis={analysis} />
 
       <ProfileSummary resumen={analysis.perfil_resumen} />
       {analysis.match_objetivo && (

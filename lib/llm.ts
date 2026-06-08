@@ -255,6 +255,30 @@ function validateResult(data: unknown): AnalysisResult {
   };
 }
 
+/**
+ * Score 0-100 para rankear candidatos. Prioriza, en orden:
+ * 1. match contra el puesto objetivo, 2. % de requisitos cumplidos del JD,
+ * 3. mejor rol compatible, 4. ATS como último recurso.
+ */
+export function computeCandidateScore(a: AnalysisResult): number {
+  if (a.match_objetivo) return a.match_objetivo.porcentaje_match;
+
+  if (a.requisitos_check.length > 0) {
+    const pts = a.requisitos_check.reduce((acc, r) => {
+      if (r.cumple === "Sí") return acc + 1;
+      if (r.cumple === "Parcial") return acc + 0.5;
+      return acc;
+    }, 0);
+    return Math.round((pts / a.requisitos_check.length) * 100);
+  }
+
+  if (a.roles_compatibles.length > 0) {
+    return a.roles_compatibles[0].porcentaje_match;
+  }
+
+  return a.ats.score;
+}
+
 interface GroqResponse {
   choices?: Array<{ message?: { content?: string } }>;
   error?: { message?: string; type?: string };

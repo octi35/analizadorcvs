@@ -1,36 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { analyzeCv } from "@/lib/llm";
+import { extractCvText, ExtractError, MAX_BYTES } from "@/lib/extract";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
-
-const MAX_BYTES = 5 * 1024 * 1024;
-
-function isPdf(file: File): boolean {
-  return (
-    file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")
-  );
-}
-
-function isTxt(file: File): boolean {
-  return (
-    file.type === "text/plain" || file.name.toLowerCase().endsWith(".txt")
-  );
-}
-
-function isDocx(file: File): boolean {
-  const name = file.name.toLowerCase();
-  return (
-    file.type ===
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
-    name.endsWith(".docx")
-  );
-}
-
-function isLegacyDoc(file: File): boolean {
-  return file.name.toLowerCase().endsWith(".doc") && !isDocx(file);
-}
 
 export async function POST(req: NextRequest) {
   try {
@@ -46,12 +20,6 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    if (file.size === 0) {
-      return NextResponse.json(
-        { error: "El archivo está vacío" },
-        { status: 400 }
-      );
-    }
     if (file.size > MAX_BYTES) {
       return NextResponse.json(
         { error: "El archivo supera el tamaño máximo de 5MB" },
@@ -59,58 +27,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-
-    let cvText = "";
-
-    if (isPdf(file)) {
-      try {
-        const pdfParse = (await import("pdf-parse")).default;
-        const parsed = await pdfParse(buffer);
-        cvText = (parsed.text || "").trim();
-      } catch {
-        return NextResponse.json(
-          { error: "No se pudo leer el PDF. ¿El archivo es válido?" },
-          { status: 400 }
-        );
+    let cvText: string;
+    try {
+      cvText = await extractCvText(file);
+    } catch (err) {
+      if (err instanceof ExtractError) {
+        return NextResponse.json({ error: err.message }, { status: 400 });
       }
-    } else if (isDocx(file)) {
-      try {
-        const mammoth = await import("mammoth");
-        const result = await mammoth.extractRawText({ buffer });
-        cvText = (result.value || "").trim();
-      } catch {
-        return NextResponse.json(
-          { error: "No se pudo leer el .docx. ¿El archivo es válido?" },
-          { status: 400 }
-        );
-      }
-    } else if (isLegacyDoc(file)) {
-      return NextResponse.json(
-        {
-          error:
-            "Formato .doc (Word 97-2003) no soportado. Guardalo como .docx, PDF o TXT.",
-        },
-        { status: 400 }
-      );
-    } else if (isTxt(file)) {
-      cvText = buffer.toString("utf-8").trim();
-    } else {
-      return NextResponse.json(
-        { error: "Formato no soportado. Subí un PDF, DOCX o TXT." },
-        { status: 400 }
-      );
-    }
-
-    if (!cvText || cvText.length < 40) {
-      return NextResponse.json(
-        {
-          error:
-            "El contenido parece vacío o ilegible (si es PDF, puede ser un escaneo sin OCR)",
-        },
-        { status: 400 }
-      );
+      throw err;
     }
 
     const analysis = await analyzeCv(cvText, jobPosition, jobDescription);

@@ -1,10 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Briefcase, Sparkles, ArrowRight, ListChecks } from "lucide-react";
+import {
+  Sparkles,
+  ArrowRight,
+  User,
+  Search,
+  Check,
+  ChevronDown,
+} from "lucide-react";
 import UploadZone from "@/components/UploadZone";
+import MultiUploadZone from "@/components/MultiUploadZone";
 
 const LOADING_STEPS = [
   "Leyendo documento...",
@@ -12,14 +20,105 @@ const LOADING_STEPS = [
   "Generando plan de mejora...",
 ];
 
+const RANK_STEPS = [
+  "Leyendo los CVs...",
+  "Evaluando cada candidato...",
+  "Armando el ranking...",
+];
+
+const MAX_CVS = 15;
+
+type Mode = "candidato" | "reclutador";
+
+const SENIORITIES = ["Junior", "Semi Senior", "Senior", "Tech Lead"];
+
+const ROLES: { label: string; title: string }[] = [
+  { label: "Frontend", title: "Frontend Developer" },
+  { label: "Backend", title: "Backend Developer" },
+  { label: "Fullstack", title: "Fullstack Developer" },
+  { label: "Mobile", title: "Mobile Developer" },
+  { label: "DevOps", title: "DevOps Engineer" },
+  { label: "Cloud", title: "Cloud Engineer" },
+  { label: "Data Eng", title: "Data Engineer" },
+  { label: "Data Science", title: "Data Scientist" },
+  { label: "QA", title: "QA Engineer" },
+  { label: "UX/UI", title: "UX/UI Designer" },
+  { label: "Ciberseguridad", title: "Security Engineer" },
+  { label: "Product", title: "Product Manager" },
+];
+
+// Requisitos típicos para reclutadores — toggle en vez de redactar
+const REQ_GROUPS: { group: string; items: string[] }[] = [
+  {
+    group: "Experiencia",
+    items: ["1+ años", "3+ años", "5+ años", "Liderazgo de equipo"],
+  },
+  {
+    group: "Modalidad",
+    items: ["Remoto", "Híbrido", "Presencial", "Disponibilidad full-time"],
+  },
+  {
+    group: "Idioma",
+    items: ["Inglés A2-B1", "Inglés B2+", "Inglés C1/nativo"],
+  },
+  {
+    group: "Stack",
+    items: [
+      "React",
+      "Angular",
+      "Vue",
+      "Node.js",
+      "Python",
+      "Java",
+      ".NET",
+      "Go",
+      "TypeScript",
+      "SQL",
+      "AWS",
+      "Azure",
+      "GCP",
+      "Docker / K8s",
+      "CI/CD",
+      "Scrum / Agile",
+    ],
+  },
+];
+
 export default function HomePage() {
   const router = useRouter();
+  const [mode, setMode] = useState<Mode>("candidato");
   const [file, setFile] = useState<File | null>(null);
-  const [jobPosition, setJobPosition] = useState("");
-  const [jobDescription, setJobDescription] = useState("");
+  const [multiFiles, setMultiFiles] = useState<File[]>([]);
+
+  // Puesto objetivo armado con chips (sin tipear)
+  const [seniority, setSeniority] = useState("");
+  const [role, setRole] = useState("");
+  const [customPosition, setCustomPosition] = useState("");
+  const [showCustom, setShowCustom] = useState(false);
+
+  // Requisitos via chips + extra opcional
+  const [selectedReqs, setSelectedReqs] = useState<string[]>([]);
+  const [extraReqs, setExtraReqs] = useState("");
+
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(0);
   const [apiError, setApiError] = useState<string | null>(null);
+
+  const jobPosition = useMemo(() => {
+    if (customPosition.trim()) return customPosition.trim();
+    return [seniority, role].filter(Boolean).join(" ").trim();
+  }, [customPosition, seniority, role]);
+
+  const jobDescription = useMemo(() => {
+    if (mode !== "reclutador") return "";
+    const lines = selectedReqs.map((r) => `• ${r}`);
+    if (extraReqs.trim()) lines.push(extraReqs.trim());
+    return lines.join("\n");
+  }, [mode, selectedReqs, extraReqs]);
+
+  const isRanking = mode === "reclutador" && multiFiles.length > 1;
+  const steps = isRanking ? RANK_STEPS : LOADING_STEPS;
+  const hasInput = mode === "reclutador" ? multiFiles.length > 0 : !!file;
 
   useEffect(() => {
     if (!loading) return;
@@ -32,31 +131,62 @@ export default function HomePage() {
     };
   }, [loading]);
 
+  const toggleReq = (item: string) =>
+    setSelectedReqs((prev) =>
+      prev.includes(item) ? prev.filter((x) => x !== item) : [...prev, item]
+    );
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!file || loading) return;
+    if (loading || !hasInput) return;
     setApiError(null);
     setLoading(true);
 
     try {
-      const fd = new FormData();
-      fd.append("file", file);
-      fd.append("jobPosition", jobPosition.trim());
-      fd.append("jobDescription", jobDescription.trim());
+      // Modo reclutador con varios CVs → ranking
+      if (mode === "reclutador" && multiFiles.length > 1) {
+        const fd = new FormData();
+        multiFiles.forEach((f) => fd.append("files", f));
+        fd.append("jobPosition", jobPosition);
+        fd.append("jobDescription", jobDescription);
 
-      const res = await fetch("/api/analyze", {
-        method: "POST",
-        body: fd,
-      });
+        const res = await fetch("/api/rank", { method: "POST", body: fd });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Error al comparar los CVs");
+
+        localStorage.setItem(
+          "cvision:last-ranking",
+          JSON.stringify({
+            candidates: data.candidates,
+            jobPosition: data.jobPosition,
+            jobDescription: data.jobDescription,
+            analyzedAt: new Date().toISOString(),
+          })
+        );
+        router.push("/ranking");
+        return;
+      }
+
+      // Análisis individual (candidato, o reclutador con 1 solo CV)
+      const single = mode === "reclutador" ? multiFiles[0] : file;
+      if (!single) return;
+      const fd = new FormData();
+      fd.append("file", single);
+      fd.append("jobPosition", jobPosition);
+      fd.append("jobDescription", jobDescription);
+
+      const res = await fetch("/api/analyze", { method: "POST", body: fd });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Error al analizar el CV");
 
-      const payload = {
-        analysis: data.analysis,
-        fileName: data.fileName,
-        analyzedAt: new Date().toISOString(),
-      };
-      localStorage.setItem("cvision:last-analysis", JSON.stringify(payload));
+      localStorage.setItem(
+        "cvision:last-analysis",
+        JSON.stringify({
+          analysis: data.analysis,
+          fileName: data.fileName,
+          analyzedAt: new Date().toISOString(),
+        })
+      );
       router.push("/results");
     } catch (err) {
       setApiError(err instanceof Error ? err.message : "Error desconocido");
@@ -71,7 +201,7 @@ export default function HomePage() {
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="text-center mb-8 sm:mb-12"
+          className="text-center mb-8 sm:mb-10"
         >
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-border bg-card/60 mb-5 sm:mb-6">
             <Sparkles className="w-3.5 h-3.5 text-accent-blue" />
@@ -83,9 +213,7 @@ export default function HomePage() {
             CV<span className="text-accent-blue">ision</span>
           </h1>
           <p className="mt-4 text-sm sm:text-base text-text/60 max-w-md mx-auto px-2">
-            Análisis IT de CVs con IA. Para candidatos: roles, mejoras y plan de
-            crecimiento. Para reclutadores: filtro contra requisitos, red flags
-            y preguntas de entrevista.
+            Análisis IT de CVs con IA. Subí el CV, elegí 2 o 3 opciones y listo.
           </p>
         </motion.div>
 
@@ -98,58 +226,191 @@ export default function HomePage() {
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.4 }}
               onSubmit={onSubmit}
-              className="bg-card border border-border rounded-2xl p-4 sm:p-8 space-y-5 sm:space-y-6"
+              className="bg-card border border-border rounded-2xl p-4 sm:p-8 space-y-6"
             >
-              <UploadZone file={file} onFile={setFile} />
-
-              <div>
-                <label
-                  htmlFor="jobPosition"
-                  className="flex items-center gap-2 text-sm text-text/70 mb-2 font-mono"
-                >
-                  <Briefcase className="w-3.5 h-3.5" />
-                  Puesto objetivo
-                  <span className="text-text/40">(opcional)</span>
-                </label>
-                <input
-                  id="jobPosition"
-                  type="text"
-                  value={jobPosition}
-                  onChange={(e) => setJobPosition(e.target.value)}
-                  placeholder="Ej: Senior Frontend Engineer"
-                  className="w-full px-4 py-3 rounded-lg bg-bg border border-border text-text placeholder:text-text/30 focus:outline-none focus:border-accent-blue/60 transition-colors font-mono text-sm"
-                />
+              {/* Toggle de modo */}
+              <div className="grid grid-cols-2 gap-2 p-1 rounded-xl bg-bg border border-border">
+                {(
+                  [
+                    { id: "candidato", label: "Soy candidato", icon: User },
+                    { id: "reclutador", label: "Soy reclutador", icon: Search },
+                  ] as const
+                ).map(({ id, label, icon: Icon }) => {
+                  const active = mode === id;
+                  return (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => setMode(id)}
+                      className={`relative flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                        active ? "text-white" : "text-text/50 hover:text-text/80"
+                      }`}
+                    >
+                      {active && (
+                        <motion.div
+                          layoutId="mode-pill"
+                          className="absolute inset-0 rounded-lg bg-accent-blue"
+                          transition={{ type: "spring", duration: 0.4 }}
+                        />
+                      )}
+                      <Icon className="w-4 h-4 relative z-10" />
+                      <span className="relative z-10">{label}</span>
+                    </button>
+                  );
+                })}
               </div>
 
-              <div>
-                <label
-                  htmlFor="jobDescription"
-                  className="flex items-center gap-2 text-sm text-text/70 mb-2 font-mono flex-wrap"
-                >
-                  <ListChecks className="w-3.5 h-3.5" />
-                  Requisitos del puesto / Job description
-                  <span className="text-text/40">(opcional · reclutadores)</span>
-                </label>
-                <textarea
-                  id="jobDescription"
-                  value={jobDescription}
-                  onChange={(e) => setJobDescription(e.target.value)}
-                  rows={5}
-                  maxLength={4000}
-                  placeholder={
-                    "Pegá la descripción del puesto o un listado de requisitos. Ej:\n• 3+ años React + TypeScript\n• Experiencia con AWS\n• Inglés B2+\n• Remoto desde LATAM"
-                  }
-                  className="w-full px-4 py-3 rounded-lg bg-bg border border-border text-text placeholder:text-text/30 focus:outline-none focus:border-accent-blue/60 transition-colors text-sm leading-relaxed resize-y min-h-[120px]"
+              {mode === "reclutador" ? (
+                <MultiUploadZone
+                  files={multiFiles}
+                  onChange={setMultiFiles}
+                  maxFiles={MAX_CVS}
                 />
-                <div className="flex justify-between mt-1.5 px-1">
-                  <span className="text-[10px] font-mono text-text/30">
-                    Cuanto más detalle, mejor el matching
-                  </span>
-                  <span className="text-[10px] font-mono text-text/30">
-                    {jobDescription.length}/4000
-                  </span>
+              ) : (
+                <UploadZone file={file} onFile={setFile} />
+              )}
+
+              {/* Puesto objetivo via chips */}
+              <div>
+                <div className="text-sm text-text/70 mb-2.5 font-mono">
+                  {mode === "candidato"
+                    ? "¿A qué puesto apuntás?"
+                    : "¿Qué puesto buscás cubrir?"}
+                  <span className="text-text/40"> (opcional)</span>
                 </div>
+
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {SENIORITIES.map((s) => (
+                    <ChipToggle
+                      key={s}
+                      label={s}
+                      active={seniority === s}
+                      onClick={() => {
+                        setSeniority((cur) => (cur === s ? "" : s));
+                        setCustomPosition("");
+                        setShowCustom(false);
+                      }}
+                    />
+                  ))}
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  {ROLES.map((r) => (
+                    <ChipToggle
+                      key={r.title}
+                      label={r.label}
+                      active={role === r.title}
+                      onClick={() => {
+                        setRole((cur) => (cur === r.title ? "" : r.title));
+                        setCustomPosition("");
+                        setShowCustom(false);
+                      }}
+                    />
+                  ))}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowCustom((v) => !v)}
+                  className="mt-3 inline-flex items-center gap-1 text-xs font-mono text-text/40 hover:text-text/70 transition-colors"
+                >
+                  <ChevronDown
+                    className={`w-3.5 h-3.5 transition-transform ${
+                      showCustom ? "rotate-180" : ""
+                    }`}
+                  />
+                  Escribir otro puesto
+                </button>
+
+                <AnimatePresence>
+                  {showCustom && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="overflow-hidden"
+                    >
+                      <input
+                        type="text"
+                        value={customPosition}
+                        onChange={(e) => {
+                          setCustomPosition(e.target.value);
+                          if (e.target.value) {
+                            setSeniority("");
+                            setRole("");
+                          }
+                        }}
+                        placeholder="Ej: Staff Platform Engineer"
+                        className="w-full mt-2.5 px-4 py-3 rounded-lg bg-bg border border-border text-text placeholder:text-text/30 focus:outline-none focus:border-accent-blue/60 transition-colors font-mono text-sm"
+                      />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {jobPosition && (
+                  <div className="mt-3 inline-flex items-center gap-2 text-xs font-mono text-accent-blue">
+                    <Check className="w-3.5 h-3.5" />
+                    Evaluando contra: {jobPosition}
+                  </div>
+                )}
               </div>
+
+              {/* Requisitos — solo reclutador */}
+              <AnimatePresence>
+                {mode === "reclutador" && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="pt-1">
+                      <div className="text-sm text-text/70 mb-1 font-mono">
+                        Requisitos del puesto
+                      </div>
+                      <div className="text-[11px] font-mono text-text/40 mb-3">
+                        Tocá los que apliquen — el resto agregalo abajo
+                      </div>
+
+                      <div className="space-y-3">
+                        {REQ_GROUPS.map((g) => (
+                          <div key={g.group}>
+                            <div className="text-[10px] uppercase tracking-wider font-mono text-text/35 mb-1.5">
+                              {g.group}
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              {g.items.map((item) => (
+                                <ChipToggle
+                                  key={item}
+                                  label={item}
+                                  active={selectedReqs.includes(item)}
+                                  onClick={() => toggleReq(item)}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <textarea
+                        value={extraReqs}
+                        onChange={(e) => setExtraReqs(e.target.value)}
+                        rows={3}
+                        maxLength={3000}
+                        placeholder="Otros requisitos específicos (opcional)..."
+                        className="w-full mt-4 px-4 py-3 rounded-lg bg-bg border border-border text-text placeholder:text-text/30 focus:outline-none focus:border-accent-blue/60 transition-colors text-sm leading-relaxed resize-y"
+                      />
+                      {selectedReqs.length > 0 && (
+                        <div className="mt-2 text-[11px] font-mono text-text/40">
+                          {selectedReqs.length} requisito
+                          {selectedReqs.length !== 1 ? "s" : ""} seleccionado
+                          {selectedReqs.length !== 1 ? "s" : ""}
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {apiError && (
                 <div className="px-4 py-3 rounded-lg border border-accent-red/30 bg-accent-red/5 text-sm text-accent-red font-mono">
@@ -159,11 +420,19 @@ export default function HomePage() {
 
               <button
                 type="submit"
-                disabled={!file}
+                disabled={!hasInput}
                 className="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-lg bg-accent-blue text-white font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-blue-500 transition-colors group"
               >
-                Analizar CV
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                {!hasInput
+                  ? mode === "reclutador"
+                    ? "Subí CVs para comparar"
+                    : "Subí un CV para empezar"
+                  : isRanking
+                    ? `Comparar ${multiFiles.length} candidatos`
+                    : "Analizar CV"}
+                {hasInput && (
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                )}
               </button>
             </motion.form>
           ) : (
@@ -187,11 +456,16 @@ export default function HomePage() {
                   transition={{ duration: 0.4 }}
                   className="font-mono text-sm text-text/80"
                 >
-                  {LOADING_STEPS[step]}
+                  {steps[step]}
                 </motion.div>
               </AnimatePresence>
+              {isRanking && (
+                <div className="mt-2 font-mono text-xs text-text/40">
+                  {multiFiles.length} CVs · esto puede tardar un toque
+                </div>
+              )}
               <div className="mt-6 flex gap-1.5">
-                {LOADING_STEPS.map((_, i) => (
+                {steps.map((_, i) => (
                   <div
                     key={i}
                     className={`h-1 w-8 rounded-full transition-colors ${
@@ -209,5 +483,30 @@ export default function HomePage() {
         </div>
       </div>
     </main>
+  );
+}
+
+function ChipToggle({
+  label,
+  active,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-mono transition-all ${
+        active
+          ? "border-accent-blue bg-accent-blue/15 text-accent-blue"
+          : "border-border bg-bg text-text/60 hover:border-accent-blue/40 hover:text-text/90"
+      }`}
+    >
+      {active && <Check className="w-3 h-3" />}
+      {label}
+    </button>
   );
 }
